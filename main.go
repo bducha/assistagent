@@ -10,7 +10,8 @@ func main() {
 
 	agent := agent.NewAgent()
 
-	info, _ := agent.GetSysInfo()
+	fmt.Println("AssistAgent started")
 
-	fmt.Printf("System : %s, %s", info.Hostname, info.OS)
+	fmt.Printf("System : %s, %s", agent.SystemInfo.Hostname, agent.SystemInfo.OS)
+	fmt.Println()
 }
