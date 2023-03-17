@@ -5,8 +5,10 @@ package system
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"regexp"
+	"syscall"
 )
 
 // Parse the output of hostnamectl to get the operating system
@@ -31,4 +33,24 @@ func getOS() (string, error) {
 	}
 
 	return matches[re.SubexpIndex("os")], nil
+}
+
+// Returns the total, used and free memory of the system
+func GetMemory() (Memory, error) {
+	info := &syscall.Sysinfo_t{}
+	err := syscall.Sysinfo(info)
+	if err != nil {
+		return Memory{}, err
+	}
+
+	fmt.Println("total ram", info.Totalram)
+	fmt.Println("free ram", info.Freeram)
+
+	totalRam := uint64(info.Totalram) * uint64(info.Unit)
+	freeRam := uint64(info.Freeram) * uint64(info.Unit)
+	return Memory{
+		TotalMemory: totalRam,
+		FreeMemory: freeRam,
+		UsedMemory: totalRam - freeRam,
+	}, nil
 }

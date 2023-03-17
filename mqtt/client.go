@@ -13,11 +13,14 @@ type Client struct {
 }
 
 type DiscoveryPayload struct {
-	Availability *DiscoveryPayloadAvailability `json:"availability,omitempty"`
-	Device       *DiscoveryPayloadDevice       `json:"device,omitempty"`
-	Name         string                        `json:"name,omitempty"`
-	StateTopic   string                        `json:"state_topic,omitempty"`
-	UniqueId     string                        `json:"unique_id,omitempty"`
+	Availability              *DiscoveryPayloadAvailability `json:"availability,omitempty"`
+	Device                    *DiscoveryPayloadDevice       `json:"device,omitempty"`
+	Name                      string                        `json:"name,omitempty"`
+	StateTopic                string                        `json:"state_topic,omitempty"`
+	UniqueId                  string                        `json:"unique_id,omitempty"`
+	DeviceClass               string                        `json:"device_class,omitempty"`
+	ValueTemplate             string                        `json:"value_template,omitempty"`
+	UnitOfMeasurement         string                        `json:"unit_of_measurement,omitempty"`
 }
 
 type DiscoveryPayloadDevice struct {
@@ -68,8 +71,8 @@ func (c *Client) GetClientId() string {
 func (c *Client) GetBaseDiscoveryPayload() DiscoveryPayload {
 	payload := DiscoveryPayload{}
 	payload.Availability = &DiscoveryPayloadAvailability{
-		Topic: BASE_TOPIC + AVAILABILITY_SUB_TOPIC,
-		PayloadAvailable: "on",
+		Topic:               BASE_TOPIC + AVAILABILITY_SUB_TOPIC,
+		PayloadAvailable:    "on",
 		PayloadNotAvailable: "off",
 	}
 	payload.Device = &DiscoveryPayloadDevice{
@@ -95,7 +98,7 @@ func (c *Client) PublishAvailabilityPayload(available bool) {
 	if available {
 		payload = "on"
 	}
-	c.Publish(c.GetBaseTopic() + AVAILABILITY_SUB_TOPIC, payload, false)
+	c.Publish(c.GetBaseTopic()+AVAILABILITY_SUB_TOPIC, payload, false)
 }
 
 // Publishes a discovery payload to home assistant
