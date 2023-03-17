@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"encoding/json"
+	"fmt"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -12,27 +13,31 @@ type Client struct {
 }
 
 type DiscoveryPayload struct {
-	Availability struct {
-		Topic               string `json:"topic,omitempty"`
-		PayloadAvailable    string `json:"payload_available,omitempty"`
-		PayloadNotAvailable string `json:"payload_not_available,omitempty"`
-	} `json:"availability,omitempty"`
-	Device struct {
-		Identifiers []string `json:"identifiers,omitempty"`
-		Name        string   `json:"name,omitempty"`
-	} `json:"device,omitempty"`
-	Name       string `json:"name,omitempty"`
-	StateTopic string `json:"state_topic,omitempty"`
-	UniqueId   string `json:"unique_id,omitempty"`
+	Availability *DiscoveryPayloadAvailability `json:"availability,omitempty"`
+	Device       *DiscoveryPayloadDevice       `json:"device,omitempty"`
+	Name         string                        `json:"name,omitempty"`
+	StateTopic   string                        `json:"state_topic,omitempty"`
+	UniqueId     string                        `json:"unique_id,omitempty"`
+}
+
+type DiscoveryPayloadDevice struct {
+	Identifiers []string `json:"identifiers,omitempty"`
+	Name        string   `json:"name,omitempty"`
+}
+
+type DiscoveryPayloadAvailability struct {
+	Topic               string `json:"topic,omitempty"`
+	PayloadAvailable    string `json:"payload_available,omitempty"`
+	PayloadNotAvailable string `json:"payload_not_available,omitempty"`
 }
 
 // temp dev consts
 
 const (
-	BROKER_HOST = "mqtt://10.0.1.1"
-	CLIENT_ID   = "assistagent"
-	BASE_TOPIC = "/assistagent/"
-	STATES_SUB_TOPIC = "state/"
+	BROKER_HOST            = "mqtt://10.0.1.1"
+	CLIENT_ID              = "assistagent"
+	BASE_TOPIC             = "assistagent/"
+	STATES_SUB_TOPIC       = "state/"
 	AVAILABILITY_SUB_TOPIC = "health"
 )
 
@@ -50,6 +55,7 @@ func NewClient() Client {
 
 	return Client{
 		mqttClient: client,
+		clientId:   CLIENT_ID,
 	}
 }
 
@@ -61,24 +67,29 @@ func (c *Client) GetClientId() string {
 // Get the base discovery payload for the device for home assistant
 func (c *Client) GetBaseDiscoveryPayload() DiscoveryPayload {
 	payload := DiscoveryPayload{}
-	payload.Availability.Topic = BASE_TOPIC + AVAILABILITY_SUB_TOPIC
-	payload.Availability.PayloadAvailable = "on"
-	payload.Availability.PayloadNotAvailable = "off"
-	payload.Device.Identifiers = []string{c.GetClientId()}
-	payload.Device.Name = c.GetClientId()
+	// payload.Availability.Topic = BASE_TOPIC + AVAILABILITY_SUB_TOPIC
+	// payload.Availability.PayloadAvailable = "on"
+	// payload.Availability.PayloadNotAvailable = "off"
+	payload.Device = &DiscoveryPayloadDevice{
+		Identifiers: []string{c.GetClientId()},
+		Name:        c.GetClientId(),
+	}
 	return payload
 }
 
 // Publishes a message on the provided topic
 func (c *Client) Publish(topic string, payload string, retain bool) {
 
+	fmt.Println("publishing on topic", topic)
+	fmt.Println("payload")
+	fmt.Println(payload)
 	token := c.mqttClient.Publish(topic, 0, retain, payload)
 	token.Wait()
 }
 
 // Publishes a discovery payload to home assistant
 func (c *Client) PublishDiscoveryPayload(payload DiscoveryPayload, component string) error {
-	topic := "/homeassistant/" + component + "/" + payload.UniqueId + "/config"
+	topic := "homeassistant/" + component + "/" + payload.UniqueId + "/config"
 
 	data, err := json.Marshal(payload)
 

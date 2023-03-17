@@ -29,7 +29,7 @@ func main() {
 	discoveryPayload.UniqueId = mqtt.GetClientId() + "_" + "hostname"
 	discoveryPayload.StateTopic = mqtt.GetStateTopic() + discoveryPayload.UniqueId
 
-	if err := mqtt.PublishDiscoveryPayload(discoveryPayload, "text"); err != nil {
+	if err := mqtt.PublishDiscoveryPayload(discoveryPayload, "sensor"); err != nil {
 		fmt.Println(err)
 	}
 
