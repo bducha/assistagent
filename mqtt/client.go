@@ -67,9 +67,11 @@ func (c *Client) GetClientId() string {
 // Get the base discovery payload for the device for home assistant
 func (c *Client) GetBaseDiscoveryPayload() DiscoveryPayload {
 	payload := DiscoveryPayload{}
-	// payload.Availability.Topic = BASE_TOPIC + AVAILABILITY_SUB_TOPIC
-	// payload.Availability.PayloadAvailable = "on"
-	// payload.Availability.PayloadNotAvailable = "off"
+	payload.Availability = &DiscoveryPayloadAvailability{
+		Topic: BASE_TOPIC + AVAILABILITY_SUB_TOPIC,
+		PayloadAvailable: "on",
+		PayloadNotAvailable: "off",
+	}
 	payload.Device = &DiscoveryPayloadDevice{
 		Identifiers: []string{c.GetClientId()},
 		Name:        c.GetClientId(),
@@ -85,6 +87,15 @@ func (c *Client) Publish(topic string, payload string, retain bool) {
 	fmt.Println(payload)
 	token := c.mqttClient.Publish(topic, 0, retain, payload)
 	token.Wait()
+}
+
+// Sends the availability of the agent
+func (c *Client) PublishAvailabilityPayload(available bool) {
+	payload := "off"
+	if available {
+		payload = "on"
+	}
+	c.Publish(c.GetBaseTopic() + AVAILABILITY_SUB_TOPIC, payload, false)
 }
 
 // Publishes a discovery payload to home assistant

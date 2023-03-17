@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/bducha/assistagent/agent"
-	"github.com/bducha/assistagent/mqtt"
 )
 
 // Dev consts
@@ -18,22 +20,34 @@ func main() {
 	agent := agent.NewAgent()
 
 	fmt.Println("AssistAgent started")
-
-	fmt.Printf("System : %s, %s", agent.SystemInfo.Hostname, agent.SystemInfo.OS)
 	fmt.Println()
 
-	mqtt := mqtt.NewClient()
-
-	discoveryPayload := mqtt.GetBaseDiscoveryPayload()
-	discoveryPayload.Name = "Hostname"
-	discoveryPayload.UniqueId = mqtt.GetClientId() + "_" + "hostname"
-	discoveryPayload.StateTopic = mqtt.GetStateTopic() + discoveryPayload.UniqueId
-
-	if err := mqtt.PublishDiscoveryPayload(discoveryPayload, "sensor"); err != nil {
-		fmt.Println(err)
-	}
-
-	time.Sleep(5 * time.Second)
 	
-	mqtt.PublishStateUpdate(discoveryPayload.UniqueId, agent.SystemInfo.Hostname)
+
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	exitChan := make(chan struct{})
+
+	go func() {
+		agent.Start(ctx)
+		close(exitChan)
+	}()
+
+	signalChan := make(chan os.Signal, 1)
+
+	signal.Notify(
+		signalChan,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGQUIT,
+		syscall.SIGTERM,
+	)
+
+	// waiting for signal to stop the agent
+	<-signalChan
+	fmt.Println("Stopping...")
+	cancel()
+	// waiting for agent to stop
+	<-exitChan
 }
