@@ -22,8 +22,6 @@ func main() {
 	fmt.Println("AssistAgent started")
 	fmt.Println()
 
-	
-
 
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -3,6 +3,9 @@ package mqtt
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -17,6 +20,7 @@ type DiscoveryPayload struct {
 	Device                    *DiscoveryPayloadDevice       `json:"device,omitempty"`
 	Name                      string                        `json:"name,omitempty"`
 	StateTopic                string                        `json:"state_topic,omitempty"`
+	CommandTopic              string                        `json:"command_topic,omitempty"`
 	UniqueId                  string                        `json:"unique_id,omitempty"`
 	DeviceClass               string                        `json:"device_class,omitempty"`
 	ValueTemplate             string                        `json:"value_template,omitempty"`
@@ -41,6 +45,7 @@ const (
 	CLIENT_ID              = "assistagent"
 	BASE_TOPIC             = "assistagent/"
 	STATES_SUB_TOPIC       = "state/"
+	ACTION_SUB_TOPIC       = "action/"
 	AVAILABILITY_SUB_TOPIC = "health"
 )
 
@@ -60,6 +65,25 @@ func NewClient() Client {
 		mqttClient: client,
 		clientId:   CLIENT_ID,
 	}
+}
+
+func (c *Client)Subscribe(topic string, callback MQTT.MessageHandler) {
+    // Subscribe to the topic with the provided callback function
+    token := c.mqttClient.Subscribe(topic, 0, callback)
+    if token.Wait() && token.Error() != nil {
+        panic(token.Error())
+    }
+
+    // Wait for an interrupt signal to terminate the subscription
+    sig := make(chan os.Signal, 1)
+    signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+    <-sig
+
+    // Unsubscribe from the topic and disconnect the client
+    token = c.mqttClient.Unsubscribe(topic)
+    if token.Wait() && token.Error() != nil {
+        panic(token.Error())
+    }
 }
 
 // Get the MQTT client id
@@ -115,12 +139,19 @@ func (c *Client) PublishDiscoveryPayload(payload DiscoveryPayload, component str
 	return nil
 }
 
+// Returns the base topic
 func (c *Client) GetBaseTopic() string {
 	return BASE_TOPIC
 }
 
+// Returns the base state topic
 func (c *Client) GetStateTopic() string {
 	return c.GetBaseTopic() + STATES_SUB_TOPIC
+}
+
+// Returns the base action topic
+func (c *Client) GetActionTopic() string {
+	return c.GetBaseTopic() + ACTION_SUB_TOPIC
 }
 
 // Publishes a state update

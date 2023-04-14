@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/bducha/assistagent/mqtt"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 type Agent struct {
 	mqtt mqtt.Client
 	sensorCollectors []SensorCollector
+	buttons []Button
 }
 
 type SensorCollector struct {
@@ -30,6 +32,12 @@ type SensorAttribute struct {
 	UniqueId string
 	DeviceClass string
 	UnitOfMeasurement string
+}
+
+type Button struct {
+	Name string
+	UniqueId string
+	Action func(MQTT.Client, MQTT.Message)
 }
 
 func NewAgent() Agent {
@@ -72,7 +80,16 @@ func (a *Agent) Start(ctx context.Context) {
 		},
 	}
 
+	a.buttons = []Button{
+		{
+			Name: "Shutdown",
+			UniqueId: "shutdown",
+			Action: Shutdown,
+		},
+	}
+
 	a.registerSensorCollectors()
+	a.registerButtons()
 	
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -119,6 +136,21 @@ func (a *Agent) registerSensorCollectors() {
 		if err := a.mqtt.PublishDiscoveryPayload(payload, "sensor"); err != nil {
 			fmt.Println(err)
 		}
+	}
+}
+
+// Sends discovery payloads for each buttons configured
+func (a *Agent) registerButtons() {
+	for _, el := range a.buttons {
+		payload := a.mqtt.GetBaseDiscoveryPayload()
+		payload.Name = el.Name
+		payload.UniqueId = a.mqtt.GetClientId() + "_" + el.UniqueId
+		payload.CommandTopic = a.mqtt.GetActionTopic() + el.UniqueId
+
+		if err := a.mqtt.PublishDiscoveryPayload(payload, "button"); err != nil {
+			fmt.Println(err)
+		}
+		go a.mqtt.Subscribe(payload.CommandTopic, el.Action)
 	}
 }
 

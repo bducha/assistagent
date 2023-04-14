@@ -30,3 +30,11 @@ func getOS() (string, error) {
 
 	return matches[re.SubexpIndex("os")] + " " + matches[re.SubexpIndex("version")], nil
 }
+
+func Shutdown() {
+	cmd := exec.Command("shutdown", "/s", "/t", "0")
+    err := cmd.Run()
+    if err != nil {
+        fmt.Println("Error shutting down:", err)
+    }
+}
