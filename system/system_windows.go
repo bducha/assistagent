@@ -4,31 +4,40 @@
 package system
 
 import (
-	"errors"
+	"fmt"
 	"os/exec"
-	"regexp"
+	"syscall"
+	"unsafe"
 )
 
-// Parse the output of the "ver" command on windows to get the OS
-func getOS() (string, error) {
-	cmd := exec.Command("cmd", "ver")
+type memStatusEx struct {
+	dwLength     uint32
+	dwMemoryLoad uint32
+	ullTotalPhys uint64
+	ullAvailPhys uint64
+	unused       [5]uint64
+}
 
-	output, err := cmd.Output()
+func GetMemory() (Memory, error) {
+    kernel32, err := syscall.LoadLibrary("kernel32.dll")
+    if err != nil {
+        panic(err)
+    }
+    defer syscall.FreeLibrary(kernel32)
 
-	if err != nil {
-		return "", err
-	}
+    var memInfo memStatusEx
+    memInfo.dwLength = uint32(unsafe.Sizeof(memInfo))
 
-	// Parse output
-	re := regexp.MustCompile(`(?i)^(?P<os>.*) \[version (?P<version>\d*)`)
+    ret, _, err := syscall.NewLazyDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx").Call(uintptr(unsafe.Pointer(&memInfo)))
+    if ret == 0 {
+        panic(err)
+    }
 
-	matches := re.FindStringSubmatch(string(output))
+    totalMemory := memInfo.ullTotalPhys
+    freeMemory := memInfo.ullAvailPhys
+    usedMemory := totalMemory - freeMemory
 
-	if len(matches) == 0 {
-		return "", errors.New("no match found in hostnamectl output")
-	}
-
-	return matches[re.SubexpIndex("os")] + " " + matches[re.SubexpIndex("version")], nil
+    return Memory{TotalMemory: totalMemory, FreeMemory: freeMemory, UsedMemory: usedMemory}, nil
 }
 
 func Shutdown() {

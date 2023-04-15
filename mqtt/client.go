@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -109,9 +108,9 @@ func (c *Client) GetBaseDiscoveryPayload() DiscoveryPayload {
 // Publishes a message on the provided topic
 func (c *Client) Publish(topic string, payload string, retain bool) {
 
-	fmt.Println("publishing on topic", topic)
-	fmt.Println("payload")
-	fmt.Println(payload)
+	// fmt.Println("publishing on topic", topic)
+	// fmt.Println("payload")
+	// fmt.Println(payload)
 	token := c.mqttClient.Publish(topic, 0, retain, payload)
 	token.Wait()
 }

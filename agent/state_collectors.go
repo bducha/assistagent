@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/bducha/assistagent/system"
 )
@@ -28,7 +27,6 @@ func GetMemoryState() (string, error) {
 
 	payloadJson, err := json.Marshal(payload)
 
-	fmt.Println(payloadJson)
 
 	if err != nil {
 		return "", err
